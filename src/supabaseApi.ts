@@ -136,6 +136,23 @@ const mapEnquiry = (e: any): Enquiry => ({
   createdAt: e.created_at || new Date().toISOString(),
 });
 
+export async function registerClientAccount(fullName: string, email: string, password: string) {
+  if (!supabase) throw new Error('Supabase is not configured');
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) throw error;
+  if (data.user) {
+    const { error: profileError } = await supabase.from('profiles').upsert({
+      id: data.user.id,
+      full_name: fullName,
+      role: 'client',
+      active: true,
+    });
+    if (profileError) throw profileError;
+  }
+  return data;
+}
+
+
 export async function signInSuperAdmin(email: string, password: string) {
   if (!supabase) throw new Error('Supabase is not configured');
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
