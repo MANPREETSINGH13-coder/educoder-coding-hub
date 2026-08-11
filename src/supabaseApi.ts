@@ -142,7 +142,7 @@ export async function signInSuperAdmin(email: string, password: string) {
   if (error) throw error;
   const { data: profile, error: profileError } = await supabase.from('profiles').select('role,active').eq('id', data.user.id).maybeSingle();
   if (profileError) throw profileError;
-  if (!profile?.active || !['admin','super_admin','team_member'].includes(profile.role)) {
+  if (!profile?.active || !['admin','super_admin','team_member','client'].includes(profile.role)) {
     await supabase.auth.signOut();
     throw new Error('This Supabase user is not an active staff account');
   }
@@ -150,6 +150,21 @@ export async function signInSuperAdmin(email: string, password: string) {
 }
 
 export async function signOutSupabase() { if (supabase) await supabase.auth.signOut(); }
+
+export async function loadClientSupabaseData(current: AppData): Promise<AppData> {
+  if (!supabase) return current;
+  const { data: userData } = await supabase.auth.getUser();
+  const email = userData.user?.email || '';
+  const [settingsRes, enquiriesRes] = await Promise.all([
+    supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
+    supabase.from('enquiries').select('*').eq('email', email).order('created_at', { ascending: false }),
+  ]);
+  if (enquiriesRes.error) throw enquiriesRes.error;
+  const base = await loadPublicSupabaseData(current).catch(()=>current);
+  const settings = settingsRes.data ? { ...base.settings, businessName: settingsRes.data.business_name || base.settings.businessName, logo: settingsRes.data.logo || base.settings.logo, email: settingsRes.data.email || base.settings.email, phone: settingsRes.data.phone || base.settings.phone } : base.settings;
+  return { ...base, settings, enquiries: enquiriesRes.data?.map(mapEnquiry) || [], activity: ['Loaded client enquiries from Supabase', ...current.activity] };
+}
+
 
 export async function loadTeamSupabaseData(current: AppData): Promise<AppData> {
   if (!supabase) return current;
