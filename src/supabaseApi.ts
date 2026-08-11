@@ -37,7 +37,7 @@ const mapService = (s: any): Service => ({
   name: s.name || '',
   icon: s.icon || 'Sparkles',
   description: s.description || '',
-  price: s.price_label || (s.starting_price ? `₹${s.starting_price}` : ''),
+  price: s.price_label || (s.starting_price ? `Rs. ${s.starting_price}` : ''),
   deliveryTime: s.delivery_time || '',
   deliverables: s.deliverables || [],
   active: Boolean(s.active),
