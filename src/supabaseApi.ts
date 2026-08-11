@@ -126,3 +126,53 @@ export async function createSupabaseEnquiry(e: Enquiry) {
   if (error) throw error;
   return data;
 }
+
+
+export async function uploadToSupabaseStorage(file: File, folder = 'uploads') {
+  if (!supabase) return null;
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-');
+  const path = `${folder}/${Date.now()}-${safeName}`;
+  const { error } = await supabase.storage.from('creative-assets').upload(path, file, { upsert: false });
+  if (error) throw error;
+  const { data } = supabase.storage.from('creative-assets').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function syncCloudData(d: AppData) {
+  if (!supabase) return;
+  const services = d.services.map(s => ({
+    id: s.id, name: s.name, icon: s.icon, description: s.description, price_label: s.price,
+    delivery_time: s.deliveryTime, deliverables: s.deliverables, active: s.active, sort_order: s.order
+  }));
+  const team = d.team.map(m => ({
+    id: m.id, full_name: m.fullName || m.name, username: m.username, profile_photo_url: m.photo, role: m.role,
+    short_bio: m.shortBio || m.bio, long_bio: m.longBio, skills: m.skills, experience: m.experience,
+    location: m.location, email: m.email, phone: m.phone, linkedin_url: m.socials.linkedin,
+    github_url: m.socials.github, instagram_url: m.socials.instagram, facebook_url: m.socials.facebook,
+    twitter_url: m.socials.twitter, youtube_url: m.socials.youtube, behance_url: m.socials.behance,
+    dribbble_url: m.socials.dribbble, website_url: m.socials.website, portfolio_url: m.socials.portfolio,
+    whatsapp_number: m.socials.whatsapp, resume_url: m.resumeUrl || m.socials.resume, is_visible: m.active,
+    is_featured: m.featured, display_order: m.order, availability_status: m.availability, join_date: m.joinDate || null
+  }));
+  const projects = d.projects.map(p => ({
+    id: p.id, title: p.title, category: p.category, cover_image: p.coverImage, client_name: p.clientName,
+    year: p.year, description: p.description, problem: p.problem, process: p.process, result: p.result,
+    tools: p.tools, tags: p.tags, project_link: p.link, featured: p.featured, published: p.published,
+    status: p.status, sort_order: p.order, assigned_to: p.assignedTo || null, revenue: p.revenue, deadline: p.deadline || null
+  }));
+  const settings = {
+    id: 1, business_name: d.settings.businessName, logo: d.settings.logo, owner_name: d.settings.ownerName,
+    owner_profile: d.settings.ownerProfile, email: d.settings.email, phone: d.settings.phone,
+    whatsapp: d.settings.whatsapp, social_links: d.settings.socials, theme: d.settings.theme,
+    currency: d.settings.currency, default_project_status: d.settings.defaultProjectStatus,
+    notifications: d.settings.notifications
+  };
+  const ops: Promise<any>[] = [];
+  if (services.length) ops.push(Promise.resolve(supabase.from('services').upsert(services)));
+  if (team.length) ops.push(Promise.resolve(supabase.from('team_members').upsert(team)));
+  if (projects.length) ops.push(Promise.resolve(supabase.from('projects').upsert(projects)));
+  ops.push(Promise.resolve(supabase.from('settings').upsert(settings)));
+  const results = await Promise.all(ops);
+  const failed = results.find((r:any)=>r.error);
+  if (failed?.error) throw failed.error;
+}
