@@ -46,3 +46,4 @@ Deploy the generated `dist` folder to Vercel, Netlify, Cloudflare Pages or any s
 - Use Settings → Reset demo data to clear local data.
 - No fake real testimonials are included.
 
+\n## Supabase API setup\nCreate a local `.env` file with:\n```env\nVITE_SUPABASE_URL=https://your-project.supabase.co\nVITE_SUPABASE_PUBLISHABLE_KEY=your-public-publishable-key\n```\nThe app loads public projects, services, team members and settings from Supabase when configured, and saves enquiries to the `enquiries` table. Do not commit `.env` or private/service-role keys.
