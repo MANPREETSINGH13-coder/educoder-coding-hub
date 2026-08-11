@@ -6,7 +6,7 @@ A production-style React + TypeScript creative business website and management p
 - Premium dark creator studio design with responsive navigation, glass cards, gradients and modals.
 - Public landing page, showcase, services, team and enquiry form.
 - Working showcase search, category filters, featured projects, detail modal and image lightbox.
-- Local persistent admin dashboard with protected demo login.
+- Local persistent dashboard with first-run Super Admin setup.
 - CRUD for projects, services, team, content items and enquiry workflow/status management.
 - Image upload previews with type and size validation.
 - Visual project timeline and live dashboard stats.
@@ -20,10 +20,10 @@ npm run dev
 ```
 Open the local URL printed by Vite.
 
-## Admin login
-No default admin email or password is published in this repository.
+## Super Admin login
+No default accounts, emails, social accounts, or passwords are published in this repository.
 
-On first local run, open the Admin page and create your private browser-local admin account. For production, connect Supabase Auth and store credentials server-side only.
+On first local run, open the Admin page and create your private Super Admin account manually. Choose your own strong password. For production, connect Supabase Auth and store credentials server-side only.
 
 ## Database setup
 1. Create a Supabase project.
