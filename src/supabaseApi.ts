@@ -142,14 +142,33 @@ export async function signInSuperAdmin(email: string, password: string) {
   if (error) throw error;
   const { data: profile, error: profileError } = await supabase.from('profiles').select('role,active').eq('id', data.user.id).maybeSingle();
   if (profileError) throw profileError;
-  if (!profile?.active || !['admin','super_admin'].includes(profile.role)) {
+  if (!profile?.active || !['admin','super_admin','team_member'].includes(profile.role)) {
     await supabase.auth.signOut();
-    throw new Error('This Supabase user is not an active admin/super_admin');
+    throw new Error('This Supabase user is not an active staff account');
   }
-  return data.user;
+  return { user: data.user, role: profile.role };
 }
 
 export async function signOutSupabase() { if (supabase) await supabase.auth.signOut(); }
+
+export async function loadTeamSupabaseData(current: AppData): Promise<AppData> {
+  if (!supabase) return current;
+  const [settingsRes, enquiriesRes] = await Promise.all([
+    supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
+    supabase.from('enquiries').select('*').order('created_at', { ascending: false }),
+  ]);
+  if (enquiriesRes.error) throw enquiriesRes.error;
+  const settings = settingsRes.data ? {
+    ...current.settings,
+    businessName: settingsRes.data.business_name || current.settings.businessName,
+    logo: settingsRes.data.logo || current.settings.logo,
+    email: settingsRes.data.email || current.settings.email,
+    phone: settingsRes.data.phone || current.settings.phone,
+    theme: settingsRes.data.theme || current.settings.theme,
+  } : current.settings;
+  return { ...current, settings, enquiries: enquiriesRes.data?.map(mapEnquiry) || [], activity: ['Loaded team enquiries from Supabase', ...current.activity] };
+}
+
 
 export async function loadAdminSupabaseData(current: AppData): Promise<AppData> {
   if (!supabase) return current;
