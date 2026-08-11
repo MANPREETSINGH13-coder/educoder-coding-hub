@@ -1,0 +1,45 @@
+-- EduCoder Coding Hub Supabase/PostgreSQL schema and safe migration
+create extension if not exists "uuid-ossp";
+create table if not exists users (id uuid primary key default uuid_generate_v4(), email text unique not null, password_hash text, role text default 'admin', created_at timestamptz default now());
+create table if not exists profiles (id uuid primary key references users(id) on delete cascade, full_name text, avatar_url text, role text default 'admin', active boolean default true);
+create table if not exists team_members (id uuid primary key default uuid_generate_v4(), created_at timestamptz default now());
+alter table team_members add column if not exists full_name text;
+alter table team_members add column if not exists username text;
+alter table team_members add column if not exists profile_photo_url text;
+alter table team_members add column if not exists role text;
+alter table team_members add column if not exists short_bio text;
+alter table team_members add column if not exists long_bio text;
+alter table team_members add column if not exists skills text[] default '{}';
+alter table team_members add column if not exists experience text;
+alter table team_members add column if not exists location text;
+alter table team_members add column if not exists email text;
+alter table team_members add column if not exists phone text;
+alter table team_members add column if not exists linkedin_url text;
+alter table team_members add column if not exists github_url text;
+alter table team_members add column if not exists instagram_url text;
+alter table team_members add column if not exists facebook_url text;
+alter table team_members add column if not exists twitter_url text;
+alter table team_members add column if not exists youtube_url text;
+alter table team_members add column if not exists behance_url text;
+alter table team_members add column if not exists dribbble_url text;
+alter table team_members add column if not exists website_url text;
+alter table team_members add column if not exists portfolio_url text;
+alter table team_members add column if not exists whatsapp_number text;
+alter table team_members add column if not exists resume_url text;
+alter table team_members add column if not exists is_visible boolean default true;
+alter table team_members add column if not exists is_featured boolean default false;
+alter table team_members add column if not exists display_order int default 999;
+alter table team_members add column if not exists availability_status text default 'Available';
+alter table team_members add column if not exists updated_at timestamptz default now();
+create table if not exists services (id uuid primary key default uuid_generate_v4(), name text not null, icon text, description text, starting_price numeric, price_label text, delivery_time text, deliverables text[] default '{}', active boolean default true, sort_order int default 999);
+create table if not exists projects (id uuid primary key default uuid_generate_v4(), title text not null, category text not null, cover_image text, client_name text, year int, description text, problem text, process text, result text, tools text[] default '{}', tags text[] default '{}', project_link text, featured boolean default false, published boolean default false, status text default 'Draft', sort_order int default 999, assigned_to uuid references team_members(id), revenue numeric default 0, deadline date, created_at timestamptz default now(), updated_at timestamptz default now());
+create table if not exists project_images (id uuid primary key default uuid_generate_v4(), project_id uuid references projects(id) on delete cascade, image_url text not null, alt text, sort_order int default 999);
+create table if not exists project_tags (id uuid primary key default uuid_generate_v4(), project_id uuid references projects(id) on delete cascade, tag text not null);
+create table if not exists enquiries (id uuid primary key default uuid_generate_v4(), enquiry_number text unique not null, name text not null, email text not null, phone text, business_name text, required_service text, budget_range text, deadline date, description text, file_url text, status text default 'New Enquiry', assigned_to uuid references team_members(id), created_at timestamptz default now());
+create table if not exists enquiry_notes (id uuid primary key default uuid_generate_v4(), enquiry_id uuid references enquiries(id) on delete cascade, note text not null, created_by uuid references users(id), created_at timestamptz default now());
+create table if not exists project_updates (id uuid primary key default uuid_generate_v4(), project_id uuid references projects(id) on delete cascade, status text, note text, created_at timestamptz default now());
+create table if not exists content_items (id uuid primary key default uuid_generate_v4(), title text not null, type text, caption text, hashtags text[] default '{}', status text default 'Idea', image_url text, due_date date, created_at timestamptz default now());
+create table if not exists notifications (id uuid primary key default uuid_generate_v4(), message text not null, read boolean default false, created_at timestamptz default now());
+create table if not exists settings (id int primary key default 1, business_name text default 'EduCoder Coding Hub', logo text default 'ECH', owner_name text, owner_profile text, email text, phone text, whatsapp text, social_links jsonb default '{}', theme text default 'dark', currency text default 'INR', default_project_status text default 'Draft', notifications boolean default true, constraint single_settings check (id=1));
+-- Storage: create a bucket named creative-assets. Public reads for published assets; authenticated admins can upload profile photos, project images and resumes/CVs.
+-- RLS: public select active team/services and published projects; public insert enquiries; admin role full CRUD.
