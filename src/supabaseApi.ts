@@ -128,6 +128,44 @@ export async function createSupabaseEnquiry(e: Enquiry) {
 }
 
 
+const mapEnquiry = (e: any): Enquiry => ({
+  id: e.id, number: e.enquiry_number || '', name: e.name || '', email: e.email || '', phone: e.phone || '',
+  business: e.business_name || '', service: e.required_service || '', budget: e.budget_range || '',
+  deadline: e.deadline || '', description: e.description || '', file: e.file_url || '',
+  status: e.status || 'New Enquiry', notes: [], assignedTo: e.assigned_to || undefined,
+  createdAt: e.created_at || new Date().toISOString(),
+});
+
+export async function signInSuperAdmin(email: string, password: string) {
+  if (!supabase) throw new Error('Supabase is not configured');
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  const { data: profile, error: profileError } = await supabase.from('profiles').select('role,active').eq('id', data.user.id).maybeSingle();
+  if (profileError) throw profileError;
+  if (!profile?.active || !['admin','super_admin'].includes(profile.role)) {
+    await supabase.auth.signOut();
+    throw new Error('This Supabase user is not an active admin/super_admin');
+  }
+  return data.user;
+}
+
+export async function signOutSupabase() { if (supabase) await supabase.auth.signOut(); }
+
+export async function loadAdminSupabaseData(current: AppData): Promise<AppData> {
+  if (!supabase) return current;
+  const [projectsRes, servicesRes, teamRes, settingsRes, enquiriesRes] = await Promise.all([
+    supabase.from('projects').select('*').order('sort_order', { ascending: true }),
+    supabase.from('services').select('*').order('sort_order', { ascending: true }),
+    supabase.from('team_members').select('*').order('display_order', { ascending: true }),
+    supabase.from('settings').select('*').eq('id', 1).maybeSingle(),
+    supabase.from('enquiries').select('*').order('created_at', { ascending: false }),
+  ]);
+  if (projectsRes.error || servicesRes.error || teamRes.error || enquiriesRes.error) throw new Error(projectsRes.error?.message || servicesRes.error?.message || teamRes.error?.message || enquiriesRes.error?.message);
+  const base = await loadPublicSupabaseData(current).catch(()=>current);
+  return { ...base, projects: projectsRes.data?.map(mapProject) || [], services: servicesRes.data?.map(mapService) || [], team: teamRes.data?.map(mapTeam) || [], enquiries: enquiriesRes.data?.map(mapEnquiry) || [], activity: ['Loaded admin data from Supabase', ...current.activity] };
+}
+
+
 export async function uploadToSupabaseStorage(file: File, folder = 'uploads') {
   if (!supabase) return null;
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-');
