@@ -198,6 +198,15 @@ export async function signInSuperAdmin(email: string, password: string) {
   return { user: data.user, role: profile.role };
 }
 
+export async function changeCurrentUserPassword(newPassword: string) {
+  if (!supabase) throw new Error('Supabase is not configured');
+  if (!newPassword || newPassword.length < 8) throw new Error('Password must be at least 8 characters');
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+  return true;
+}
+
+
 export async function signOutSupabase() { if (supabase) await supabase.auth.signOut(); }
 
 export async function loadClientSupabaseData(current: AppData): Promise<AppData> {
