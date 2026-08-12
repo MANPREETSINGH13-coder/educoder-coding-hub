@@ -249,6 +249,58 @@ export async function loadAdminSupabaseData(current: AppData): Promise<AppData> 
 }
 
 
+export async function getOwnTeamMemberProfile() {
+  if (!supabase) return null;
+  const { data: userData } = await supabase.auth.getUser();
+  const email = userData.user?.email || '';
+  if (!email) return null;
+  const { data, error } = await supabase.from('team_members').select('*').eq('email', email).maybeSingle();
+  if (error) throw error;
+  return data ? mapTeam(data) : null;
+}
+
+export async function saveOwnTeamMemberProfile(m: TeamMember) {
+  if (!supabase) return null;
+  const { data: userData } = await supabase.auth.getUser();
+  const email = userData.user?.email || '';
+  if (!email) throw new Error('No logged in team email found');
+  const row = {
+    id: m.id || crypto.randomUUID(),
+    full_name: m.fullName || m.name,
+    username: m.username,
+    profile_photo_url: m.photo,
+    role: m.role,
+    short_bio: m.shortBio || m.bio,
+    long_bio: m.longBio,
+    skills: m.skills,
+    experience: m.experience,
+    location: m.location,
+    email,
+    phone: m.phone,
+    linkedin_url: m.socials.linkedin,
+    github_url: m.socials.github,
+    instagram_url: m.socials.instagram,
+    facebook_url: m.socials.facebook,
+    twitter_url: m.socials.twitter,
+    youtube_url: m.socials.youtube,
+    behance_url: m.socials.behance,
+    dribbble_url: m.socials.dribbble,
+    website_url: m.socials.website,
+    portfolio_url: m.socials.portfolio,
+    whatsapp_number: m.socials.whatsapp,
+    resume_url: m.resumeUrl || m.socials.resume,
+    is_visible: m.active,
+    is_featured: m.featured,
+    display_order: m.order || 999,
+    availability_status: m.availability,
+    join_date: m.joinDate || null,
+  };
+  const { data, error } = await supabase.from('team_members').upsert(row).select().single();
+  if (error) throw error;
+  return mapTeam(data);
+}
+
+
 export async function uploadToSupabaseStorage(file: File, folder = 'uploads') {
   if (!supabase) return null;
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-');
