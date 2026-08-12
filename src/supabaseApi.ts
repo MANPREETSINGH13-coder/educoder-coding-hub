@@ -198,6 +198,16 @@ export async function signInSuperAdmin(email: string, password: string) {
   return { user: data.user, role: profile.role };
 }
 
+export async function sendPasswordRecovery(email: string) {
+  if (!supabase) throw new Error('Supabase is not configured');
+  if (!/\S+@\S+\.\S+/.test(email)) throw new Error('Enter a valid email address');
+  const redirectTo = window.location.origin + window.location.pathname;
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), { redirectTo });
+  if (error) throw error;
+  return true;
+}
+
+
 export async function changeCurrentUserPassword(newPassword: string) {
   if (!supabase) throw new Error('Supabase is not configured');
   if (!newPassword || newPassword.length < 8) throw new Error('Password must be at least 8 characters');
