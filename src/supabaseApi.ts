@@ -136,6 +136,38 @@ const mapEnquiry = (e: any): Enquiry => ({
   createdAt: e.created_at || new Date().toISOString(),
 });
 
+export async function signInWithGoogle() {
+  if (!supabase) throw new Error('Supabase is not configured');
+  const redirectTo = window.location.origin + window.location.pathname;
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo },
+  });
+  if (error) throw error;
+}
+
+export async function getCurrentUserRole() {
+  if (!supabase) return null;
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData.user;
+  if (!user) return null;
+  const { data: profile } = await supabase.from('profiles').select('role,active').eq('id', user.id).maybeSingle();
+  if (!profile?.active) return null;
+  return profile.role || 'client';
+}
+
+export async function ensureClientProfile(fullName = '') {
+  if (!supabase) return;
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData.user;
+  if (!user) return;
+  const { data: profile } = await supabase.from('profiles').select('id').eq('id', user.id).maybeSingle();
+  if (!profile) {
+    await supabase.from('profiles').insert({ id: user.id, full_name: fullName || user.user_metadata?.full_name || user.email, role: 'client', active: true });
+  }
+}
+
+
 export async function registerClientAccount(fullName: string, email: string, password: string) {
   if (!supabase) throw new Error('Supabase is not configured');
   const { data, error } = await supabase.auth.signUp({ email, password });
