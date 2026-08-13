@@ -330,6 +330,42 @@ export async function uploadToSupabaseStorage(file: File, folder = 'uploads') {
   return data.publicUrl;
 }
 
+export async function saveSupabaseProject(p: Project) {
+  if (!supabase) return null;
+  const row = {
+    id: p.id,
+    title: p.title,
+    category: p.category,
+    cover_image: p.coverImage,
+    client_name: p.clientName,
+    year: p.year,
+    description: p.description,
+    problem: p.problem,
+    process: p.process,
+    result: p.result,
+    tools: p.tools,
+    tags: p.tags,
+    project_link: p.link,
+    featured: p.featured,
+    published: p.published,
+    status: p.status,
+    sort_order: p.order,
+    assigned_to: p.assignedTo || null,
+    revenue: p.revenue || 0,
+    deadline: p.deadline || null,
+  };
+  const { data, error } = await supabase.from('projects').upsert(row).select().single();
+  if (error) throw error;
+  if (p.galleryImages?.length) {
+    await supabase.from('project_images').delete().eq('project_id', p.id);
+    const imgs = p.galleryImages.map((url, i) => ({ project_id: p.id, image_url: url, sort_order: i + 1, alt: p.title }));
+    const { error: imgError } = await supabase.from('project_images').insert(imgs);
+    if (imgError) throw imgError;
+  }
+  return data;
+}
+
+
 export async function syncCloudData(d: AppData) {
   if (!supabase) return;
   const services = d.services.map(s => ({
