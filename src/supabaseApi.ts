@@ -93,6 +93,10 @@ export async function loadPublicSupabaseData(current: AppData): Promise<AppData>
     phone: settingsRes.data.phone || current.settings.phone,
     whatsapp: settingsRes.data.whatsapp || current.settings.whatsapp,
     theme: settingsRes.data.theme || current.settings.theme,
+    paymentLink: settingsRes.data.social_links?.paymentLink || current.settings.paymentLink || '',
+    upiId: settingsRes.data.social_links?.upiId || current.settings.upiId || '',
+    paymentMerchant: settingsRes.data.social_links?.paymentMerchant || current.settings.paymentMerchant || 'EduCoder Coding Hub',
+    paymentQrUrl: settingsRes.data.social_links?.paymentQrUrl || current.settings.paymentQrUrl || '',
     currency: settingsRes.data.currency || current.settings.currency,
     defaultProjectStatus: settingsRes.data.default_project_status || current.settings.defaultProjectStatus,
     notifications: settingsRes.data.notifications ?? current.settings.notifications,
@@ -134,6 +138,9 @@ const mapEnquiry = (e: any): Enquiry => ({
   deadline: e.deadline || '', description: e.description || '', file: e.file_url || '',
   status: e.status || 'New Enquiry', notes: [], assignedTo: e.assigned_to || undefined,
   createdAt: e.created_at || new Date().toISOString(),
+  paymentAmount: e.payment_amount || 0,
+  paymentStatus: e.payment_status || 'Unpaid',
+  paymentRef: e.payment_ref || '',
 });
 
 export async function signInWithGoogle() {
@@ -229,7 +236,7 @@ export async function loadClientSupabaseData(current: AppData): Promise<AppData>
   ]);
   if (enquiriesRes.error) throw enquiriesRes.error;
   const base = await loadPublicSupabaseData(current).catch(()=>current);
-  const settings = settingsRes.data ? { ...base.settings, businessName: settingsRes.data.business_name || base.settings.businessName, logo: settingsRes.data.logo || base.settings.logo, email: settingsRes.data.email || base.settings.email, phone: settingsRes.data.phone || base.settings.phone } : base.settings;
+  const settings = settingsRes.data ? { ...base.settings, businessName: settingsRes.data.business_name || base.settings.businessName, logo: settingsRes.data.logo || base.settings.logo, email: settingsRes.data.email || base.settings.email, phone: settingsRes.data.phone || base.settings.phone, paymentLink: settingsRes.data.social_links?.paymentLink || base.settings.paymentLink || '', upiId: settingsRes.data.social_links?.upiId || base.settings.upiId || '', paymentMerchant: settingsRes.data.social_links?.paymentMerchant || base.settings.paymentMerchant || 'EduCoder Coding Hub', paymentQrUrl: settingsRes.data.social_links?.paymentQrUrl || base.settings.paymentQrUrl || '' } : base.settings;
   return { ...base, settings, enquiries: enquiriesRes.data?.map(mapEnquiry) || [], activity: ['Loaded client enquiries from Supabase', ...current.activity] };
 }
 
@@ -248,6 +255,10 @@ export async function loadTeamSupabaseData(current: AppData): Promise<AppData> {
     email: settingsRes.data.email || current.settings.email,
     phone: settingsRes.data.phone || current.settings.phone,
     theme: settingsRes.data.theme || current.settings.theme,
+    paymentLink: settingsRes.data.social_links?.paymentLink || current.settings.paymentLink || '',
+    upiId: settingsRes.data.social_links?.upiId || current.settings.upiId || '',
+    paymentMerchant: settingsRes.data.social_links?.paymentMerchant || current.settings.paymentMerchant || 'EduCoder Coding Hub',
+    paymentQrUrl: settingsRes.data.social_links?.paymentQrUrl || current.settings.paymentQrUrl || '',
   } : current.settings;
   return { ...current, settings, enquiries: enquiriesRes.data?.map(mapEnquiry) || [], activity: ['Loaded team enquiries from Supabase', ...current.activity] };
 }
@@ -391,7 +402,7 @@ export async function syncCloudData(d: AppData) {
   const settings = {
     id: 1, business_name: d.settings.businessName, logo: d.settings.logo, owner_name: d.settings.ownerName,
     owner_profile: d.settings.ownerProfile, email: d.settings.email, phone: d.settings.phone,
-    whatsapp: d.settings.whatsapp, social_links: d.settings.socials, theme: d.settings.theme,
+    whatsapp: d.settings.whatsapp, social_links: {...d.settings.socials,paymentLink:d.settings.paymentLink||'',upiId:d.settings.upiId||'',paymentMerchant:d.settings.paymentMerchant||'',paymentQrUrl:d.settings.paymentQrUrl||''}, theme: d.settings.theme,
     currency: d.settings.currency, default_project_status: d.settings.defaultProjectStatus,
     notifications: d.settings.notifications
   };
