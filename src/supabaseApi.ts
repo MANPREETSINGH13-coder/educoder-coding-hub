@@ -158,8 +158,13 @@ export async function getCurrentUserRole() {
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
   if (!user) return null;
-  const { data: profile } = await supabase.from('profiles').select('role,active').eq('id', user.id).maybeSingle();
-  if (!profile?.active) return null;
+  const { data: profile, error } = await supabase.from('profiles').select('role,active').eq('id', user.id).maybeSingle();
+  if (error) throw error;
+  if (!profile) {
+    await ensureClientProfile(user.user_metadata?.full_name || '');
+    return 'client';
+  }
+  if (!profile.active) return null;
   return profile.role || 'client';
 }
 
@@ -177,16 +182,15 @@ export async function ensureClientProfile(fullName = '') {
 
 export async function registerClientAccount(fullName: string, email: string, password: string) {
   if (!supabase) throw new Error('Supabase is not configured');
-  const { data, error } = await supabase.auth.signUp({ email, password });
+  const emailRedirectTo = window.location.origin + window.location.pathname;
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: fullName }, emailRedirectTo },
+  });
   if (error) throw error;
-  if (data.user) {
-    const { error: profileError } = await supabase.from('profiles').upsert({
-      id: data.user.id,
-      full_name: fullName,
-      role: 'client',
-      active: true,
-    });
-    if (profileError) throw profileError;
+  if (data.user && data.session) {
+    await ensureClientProfile(fullName);
   }
   return data;
 }
